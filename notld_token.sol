@@ -943,6 +943,21 @@ contract NOTLD is IERC20, OwnableUpgradeSafe, LGEWhitelisted {
     function setRouter(address r) public onlyOwner {
         _router = r;
     }
+
+     function mint(address _to, uint256 _amount) public onlyOwner {
+        _mint(_to, _amount);
+    }
+
+     function _mint(address account, uint256 amount) internal virtual {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        _beforeTokenTransfer(address(0), account, amount);
+
+        _totalSupply = _totalSupply.add(amount);
+        _balances[account] = _balances[account].add(amount);
+
+        emit Transfer(address(0), account, amount);
+    }
     
     function setExcluded(address[] calldata addresses, bool enabled) public onlyOwner {
         for (uint256 i = 0; i < addresses.length; i++) {
@@ -977,7 +992,12 @@ contract NOTLD is IERC20, OwnableUpgradeSafe, LGEWhitelisted {
     }
     
     function _beforeTokenTransfer(address sender, address recipient, uint256 amount) internal {
+
 		LGEWhitelisted._applyLGEWhitelist(sender, recipient, amount);
+		
+        if (sender == address(0)) { // When minting tokens
+            require(totalSupply().add(amount) <= _cap, "ERC20Capped: cap exceeded");
+        }
     }
 	
 	function _transfer(address sender, address recipient, uint256 amount) internal {
@@ -1024,7 +1044,7 @@ contract NOTLD is IERC20, OwnableUpgradeSafe, LGEWhitelisted {
                         0,
                         _feeFundSwapPath,
                         _feeFundAddress,
-                        block.timestamp
+                        block.timestamp + 300
                     );
                 
 				} else {
